@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars and set your own address.
+#   curl -s https://checkip.amazonaws.com
+allowed_cidrs = ["203.0.113.7/32"]
+region        = "us-east-1"
+
+# Cost posture for a short measurement run: scale to the 0.5 ACU floor between
+# runs, keep one day of backups, destroy when done.
+min_acu               = 0.5
+max_acu               = 2
+backup_retention_days = 1
+create_reader         = false

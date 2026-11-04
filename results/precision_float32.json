@@ -1,0 +1,25 @@
+{
+  "dtype": "float32",
+  "device": "cuda",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "gamma": 4,
+  "max_new_tokens": 64,
+  "eval_prompts": 117,
+  "train_prompts": 39,
+  "total_reference_tokens": 6738,
+  "token_level_divergence_rate": 0.0,
+  "A_or_B_speculative_vs_greedy": {
+    "prompts_identical": 117,
+    "prompts_diverged": 0,
+    "sequence_match_rate": 1.0,
+    "divergences": [],
+    "all_divergences_are_subulp_ties": true
+  },
+  "C_control_padded_greedy_vs_greedy_no_speculation": {
+    "prompts_identical": 117,
+    "prompts_diverged": 0,
+    "sequence_match_rate": 1.0,
+    "divergences": [],
+    "note": "No speculation involved. Each forward pass carries gamma extra copies of the last token whose logits are discarded, so only the matmul shape differs from plain greedy decoding."
+  }
+}

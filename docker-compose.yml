@@ -1,0 +1,128 @@
+# Containerized fleet: Postgres-backed registry + N serving replicas behind a
+# canary-splitting router, with the drift detector, trainer and canary
+# controller running as separate processes.
+#
+# Replicas are CPU-only here (this host has no nvidia-container-toolkit), which
+# is why the fleet runs a small target model. GPU numbers come from the host
+# benchmark in `make bench-gpu`; see README for which figure comes from where.
+
+name: fleet
+
+x-fleet-env: &fleet-env
+  FLEET_DATABASE_URL: postgresql://fleet:fleet@postgres:5432/fleet
+  FLEET_ARTIFACT_DIR: /artifacts
+  # per-container scratch, never shared
+  FLEET_ARTIFACT_CACHE_DIR: /tmp/fleet-artifact-cache
+  FLEET_TARGET_MODEL: ${FLEET_TARGET_MODEL:-Qwen/Qwen2.5-0.5B-Instruct}
+  FLEET_DEVICE: cpu
+  FLEET_DTYPE: float32
+  FLEET_GAMMA: ${FLEET_GAMMA:-4}
+  FLEET_MAX_NEW_TOKENS: ${FLEET_MAX_NEW_TOKENS:-48}
+  # Tuned for a demo-scale traffic rate. A gate needs min_requests on BOTH arms
+  # before it can decide, so at production request rates the defaults in
+  # config.py cross these thresholds in under a second -- here a human is
+  # driving a few hundred requests by hand, so they are scaled down to keep the
+  # loop observable. Override any of them in .env.
+  FLEET_TRAIN_MIN_SAMPLES: ${FLEET_TRAIN_MIN_SAMPLES:-40}
+  FLEET_CANARY_PCT: ${FLEET_CANARY_PCT:-30}
+  FLEET_CANARY_MIN_REQUESTS: ${FLEET_CANARY_MIN_REQUESTS:-15}
+  FLEET_DRIFT_WINDOW: ${FLEET_DRIFT_WINDOW:-120}
+  FLEET_DRIFT_MIN_INTERVAL_S: ${FLEET_DRIFT_MIN_INTERVAL_S:-10}
+  FLEET_CANARY_MAX_REQUESTS: ${FLEET_CANARY_MAX_REQUESTS:-45}
+  FLEET_AUDIT_SAMPLE_RATE: ${FLEET_AUDIT_SAMPLE_RATE:-0.1}
+  HF_HOME: /hf
+  # The image's source tree is root-owned and containers run as the host user,
+  # so bytecode caching would fail noisily for no benefit.
+  PYTHONDONTWRITEBYTECODE: "1"
+  OMP_NUM_THREADS: "3"
+  TOKENIZERS_PARALLELISM: "false"
+
+# ./artifacts is bind-mounted rather than a named volume so the host-side
+# benchmark and the containerized fleet share one artifact store -- the same
+# relationship an S3 prefix would give them in a real deployment.
+x-replica: &replica
+  # Run as the host user so files written into the bind-mounted ./artifacts
+  # store are owned by that user rather than by root -- otherwise the
+  # host-side trainer and test suite cannot write to a store the containers
+  # have touched. Override with FLEET_UID / FLEET_GID if your ids differ.
+  user: "${FLEET_UID:-1000}:${FLEET_GID:-1000}"
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: fleet-serving:latest
+  depends_on:
+    postgres:
+      condition: service_healthy
+  volumes:
+    - ./artifacts:/artifacts
+    - ${HF_CACHE_DIR:-${HOME}/.cache/huggingface}:/hf
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fleet
+      POSTGRES_PASSWORD: fleet
+      POSTGRES_DB: fleet
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fleet -d fleet"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  replica-a:
+    <<: *replica
+    command: ["serve"]
+    environment:
+      <<: *fleet-env
+      FLEET_REPLICA_ID: replica-a
+    ports:
+      - "8081:8000"
+
+  replica-b:
+    <<: *replica
+    command: ["serve"]
+    environment:
+      <<: *fleet-env
+      FLEET_REPLICA_ID: replica-b
+    ports:
+      - "8082:8000"
+
+  router:
+    <<: *replica
+    command: ["router"]
+    environment:
+      <<: *fleet-env
+      FLEET_REPLICA_URLS: http://replica-a:8000,http://replica-b:8000
+    ports:
+      - "8080:8000"
+
+  trainer:
+    <<: *replica
+    command: ["trainer"]
+    # Not an HTTP server: the shared healthcheck would never pass.
+    healthcheck:
+      disable: true
+    environment:
+      <<: *fleet-env
+      FLEET_REPLICA_ID: trainer
+
+  controller:
+    <<: *replica
+    command: ["controller"]
+    healthcheck:
+      disable: true
+    environment:
+      <<: *fleet-env
+      FLEET_REPLICA_ID: controller
+      # Lets the controller push an immediate reconcile on promote/rollback;
+      # the replicas' own poll loop remains the guarantee if a push is lost.
+      FLEET_REPLICA_URLS: http://replica-a:8000,http://replica-b:8000
+
+volumes:
+  pgdata:

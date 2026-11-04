@@ -1,0 +1,14 @@
+transformers>=4.48
+accelerate>=1.3
+safetensors>=0.4
+numpy>=1.26
+# the canary gate's Welch t-test; without it the controller cannot decide
+scipy>=1.14
+fastapi>=0.115
+uvicorn[standard]>=0.34
+httpx>=0.28
+psycopg[binary,pool]>=3.2
+pydantic>=2.10
+pydantic-settings>=2.7
+tenacity>=9.0
+typer>=0.15

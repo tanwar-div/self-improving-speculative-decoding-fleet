@@ -1,0 +1,70 @@
+==============================================================================
+SELF-IMPROVING SPECULATIVE DECODING FLEET -- BENCHMARK
+==============================================================================
+model Qwen/Qwen2.5-0.5B-Instruct  device cuda  dtype torch.float16  gamma 4  max_new_tokens 48
+prompt pool 40000 prompts across 6 domains  (all from real datasets: True)
+decoded per arm 800  static warm-up 240  audit 1 in 20
+total wall time 4589.4s
+
+------------------------------------------------------------------------------
+E1a  THROUGHPUT -- NON-STATIONARY WORKLOAD (the real case)
+------------------------------------------------------------------------------
+800 requests per arm; non-stationary (regime sequence)
+regime changes: @0:code+chat  @200:summarization  @400:medical+legal  @600:math+code
+
+arm                 tok/s  steady  p50 ms  p95 ms  accept  tok/fwd  greedy vers
+no_speculation       91.3    90.9   516.1   547.4       -    1.000     n/a    1
+static_initial      116.3   115.9   397.8   525.9   0.211    1.442   39/40    1
+static_broad        121.6   124.5   368.1   511.9   0.227    1.530   38/40    1
+self_improving       98.2   100.3   470.5   582.9   0.210    1.276   40/40    5
+
+  static (deploy-time data) vs no speculation : 1.273x
+  static (all domains) vs no speculation      : 1.333x
+  self-improving vs no speculation            : 1.076x
+  self-improving vs static (deploy-time)      : 0.845x
+  self-improving vs static (all domains)      : 0.808x   <-- headline
+    ... excluding cold start                  : 0.806x
+  p95 latency, self-improving / static_broad   : 1.139x
+  self-improving: 4 retrains, 3 promotions, 0 rollbacks, 6.5s training (off the serving path)
+
+------------------------------------------------------------------------------
+E1b  THROUGHPUT -- STATIONARY WORKLOAD (control)
+------------------------------------------------------------------------------
+798 requests per arm; stationary (fixed stratified mix)
+
+arm                 tok/s  steady  p50 ms  p95 ms  accept  tok/fwd  greedy vers
+no_speculation       90.6    90.6   521.5   552.7       -    1.000     n/a    1
+static_initial      119.2   120.0   379.6   522.8   0.217    1.504   39/40    1
+static_broad        118.9   119.7   383.4   515.3   0.217    1.504   39/40    1
+self_improving      101.4   104.8   452.2   582.7   0.222    1.322   40/40    5
+
+  static (deploy-time data) vs no speculation : 1.315x
+  static (all domains) vs no speculation      : 1.313x
+  self-improving vs no speculation            : 1.119x
+  self-improving vs static (deploy-time)      : 0.851x
+  self-improving vs static (all domains)      : 0.852x   <-- expect ~1.0 (no regression)
+    ... excluding cold start                  : 0.876x
+  p95 latency, self-improving / static_broad   : 1.131x
+  self-improving: 4 retrains, 3 promotions, 0 rollbacks, 4.5s training (off the serving path)
+
+------------------------------------------------------------------------------
+E2  WORKLOAD-SHIFT RECOVERY
+------------------------------------------------------------------------------
+code+chat (300 requests) -> medical+legal (600 requests), shift at request 300
+both policies run the identical prompt stream; only the retrain trigger differs (periodic every 200 requests)
+
+policy              retrains    tok/s   p95 ms  accept
+periodic                   4     89.9    626.7   0.180
+drift_triggered            6     94.3    593.2   0.173
+
+recovery target: 95% of the lower policy plateau = 88.6 tok/s (sustained 20 requests)
+for context, a frozen drafter pre-trained on post-shift traffic reaches 127.5 tok/s -- unreachable for a live adaptive system, which pays a cold start, a rollout latency and a continuous canary tax
+
+policy              plateau  %oracle   recover@   deficit
+periodic               98.0      77%     65 req      2.92
+drift_triggered        93.2      73%     30 req      1.36
+
+  drift-triggered recovered 53.8% faster (30 vs 65 requests)   <-- headline
+  drift-triggered post-shift deficit 53.3% lower (1.36 vs 2.92 tok/s)
+  retrains spent: periodic 4, drift-triggered 6
+

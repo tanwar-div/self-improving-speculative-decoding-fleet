@@ -1,0 +1,260 @@
+{
+  "dtype": "float16",
+  "device": "cuda",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "gamma": 4,
+  "max_new_tokens": 64,
+  "eval_prompts": 117,
+  "train_prompts": 39,
+  "total_reference_tokens": 6708,
+  "token_level_divergence_rate": 0.00223614,
+  "A_or_B_speculative_vs_greedy": {
+    "prompts_identical": 102,
+    "prompts_diverged": 15,
+    "sequence_match_rate": 0.8718,
+    "divergences": [
+      {
+        "prompt": "Answer this clinical research question: Differentiation of nonalcoholi",
+        "domain": "medical",
+        "index": 29,
+        "tokens_generated": 64,
+        "top1_logit": 18.921875,
+        "top2_gap": 0.0,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 0.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Answer this clinical research question: Is the Distance Worth It?",
+        "domain": "medical",
+        "index": 30,
+        "tokens_generated": 64,
+        "top1_logit": 21.0625,
+        "top2_gap": 0.015625,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 1.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Answer this clinical research question: Is a mandatory general surgery",
+        "domain": "medical",
+        "index": 10,
+        "tokens_generated": 64,
+        "top1_logit": 21.4375,
+        "top2_gap": 0.0,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 0.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Identify the legal issue raised by this case excerpt:\n12. The applican",
+        "domain": "legal",
+        "index": 17,
+        "tokens_generated": 64,
+        "top1_logit": 17.0,
+        "top2_gap": 0.015625,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 1.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Solve step by step. At Mario's barbershop haircuts are 50% more expens",
+        "domain": "math",
+        "index": 54,
+        "tokens_generated": 64,
+        "top1_logit": 19.484375,
+        "top2_gap": 0.0,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 0.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Identify the legal issue raised by this case excerpt:\n8. The applicant",
+        "domain": "legal",
+        "index": 48,
+        "tokens_generated": 64,
+        "top1_logit": 18.421875,
+        "top2_gap": 0.0,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 0.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Write a Python function. Write a python function to find sum of prime ",
+        "domain": "code",
+        "index": 19,
+        "tokens_generated": 64,
+        "top1_logit": 25.640625,
+        "top2_gap": 0.015625,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 1.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Identify the legal issue raised by this case excerpt:\n7. On 19 October",
+        "domain": "legal",
+        "index": 15,
+        "tokens_generated": 52,
+        "top1_logit": 14.835938,
+        "top2_gap": 0.0078125,
+        "fp16_ulp_at_that_magnitude": 0.0078125,
+        "gap_in_ulps": 1.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Summarize the following news article in two sentences:\nLONDON, England",
+        "domain": "summarization",
+        "index": 31,
+        "tokens_generated": 33,
+        "top1_logit": 22.15625,
+        "top2_gap": 0.0,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 0.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Identify the legal issue raised by this case excerpt:\n7. The applicant",
+        "domain": "legal",
+        "index": 9,
+        "tokens_generated": 64,
+        "top1_logit": 17.421875,
+        "top2_gap": 0.015625,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 1.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Answer this clinical research question: Major depression and alcohol u",
+        "domain": "medical",
+        "index": 32,
+        "tokens_generated": 64,
+        "top1_logit": 20.90625,
+        "top2_gap": 0.015625,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 1.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Make a prediction about what will happen in the next paragraph.",
+        "domain": "chat",
+        "index": 29,
+        "tokens_generated": 38,
+        "top1_logit": 20.625,
+        "top2_gap": 0.0,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 0.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Identify the legal issue raised by this case excerpt:\n10. On 2 Decembe",
+        "domain": "legal",
+        "index": 31,
+        "tokens_generated": 64,
+        "top1_logit": 21.4375,
+        "top2_gap": 0.015625,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 1.0,
+        "tie_below_fp16_resolution": true
+      },
+      {
+        "prompt": "Write a Python function. Write a python function to toggle bits of the",
+        "domain": "code",
+        "index": 46,
+        "tokens_generated": 64,
+        "top1_logit": 22.40625,
+        "top2_gap": 0.03125,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 2.0,
+        "tie_below_fp16_resolution": false
+      },
+      {
+        "prompt": "Write a Python function. Write a function to count number of unique li",
+        "domain": "code",
+        "index": 29,
+        "tokens_generated": 64,
+        "top1_logit": 20.953125,
+        "top2_gap": 0.0,
+        "fp16_ulp_at_that_magnitude": 0.015625,
+        "gap_in_ulps": 0.0,
+        "tie_below_fp16_resolution": true
+      }
+    ],
+    "all_divergences_are_subulp_ties": false
+  },
+  "C_control_padded_greedy_vs_greedy_no_speculation": {
+    "prompts_identical": 100,
+    "prompts_diverged": 17,
+    "sequence_match_rate": 0.8547,
+    "divergences": [
+      {
+        "prompt": "Answer this clinical research question: Differentiation of nonalcoholi",
+        "index": 29
+      },
+      {
+        "prompt": "Answer this clinical research question: Is a mandatory general surgery",
+        "index": 10
+      },
+      {
+        "prompt": "Identify the legal issue raised by this case excerpt:\n12. The applican",
+        "index": 17
+      },
+      {
+        "prompt": "Solve step by step. At Mario's barbershop haircuts are 50% more expens",
+        "index": 54
+      },
+      {
+        "prompt": "Solve step by step. Paul went to a shop to buy some groceries. He boug",
+        "index": 42
+      },
+      {
+        "prompt": "Given the following input, classify the verb as transitive or intransi",
+        "index": 29
+      },
+      {
+        "prompt": "Identify the legal issue raised by this case excerpt:\n8. The applicant",
+        "index": 48
+      },
+      {
+        "prompt": "Write a Python function. Write a python function to find sum of prime ",
+        "index": 19
+      },
+      {
+        "prompt": "Answer this clinical research question: Assessment of appropriate anti",
+        "index": 56
+      },
+      {
+        "prompt": "Describe the effects of climate change.",
+        "index": 2
+      },
+      {
+        "prompt": "Summarize the following news article in two sentences:\nLONDON, England",
+        "index": 31
+      },
+      {
+        "prompt": "Identify the legal issue raised by this case excerpt:\n7. The applicant",
+        "index": 9
+      },
+      {
+        "prompt": "Answer this clinical research question: Major depression and alcohol u",
+        "index": 32
+      },
+      {
+        "prompt": "Write a Python function. Write a function to find common index element",
+        "index": 26
+      },
+      {
+        "prompt": "Identify the legal issue raised by this case excerpt:\n10. On 2 Decembe",
+        "index": 31
+      },
+      {
+        "prompt": "Write a Python function. Write a function to count number of unique li",
+        "index": 29
+      },
+      {
+        "prompt": "Answer this clinical research question: Aripiprazole: a new risk facto",
+        "index": 56
+      }
+    ],
+    "note": "No speculation involved. Each forward pass carries gamma extra copies of the last token whose logits are discarded, so only the matmul shape differs from plain greedy decoding."
+  }
+}

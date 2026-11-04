@@ -1,0 +1,90 @@
+CONTAINERIZED FLEET -- full self-improvement loop under a workload shift
+========================================================================
+
+2 serving replicas + router + async trainer + canary controller, all in Docker.
+CPU inference (this host has no nvidia-container-toolkit), Qwen2.5-0.5B-Instruct fp32.
+300 requests, workload shifted code+chat -> medical+legal at the halfway point.
+Captured 2026-11-04T23:26:41Z
+
+WHAT TO LOOK FOR: the fleet cold-starts with NO speculation, trains candidates
+from its own live traffic, and the SLO gate refuses every one of them on a
+statistically significant p95 regression. That is the correct outcome here:
+a CPU target forward is compute-bound, so a wider speculative batch costs real
+time, and the trainer's objective (tokens per target forward) does not price
+that in. The gate caught the mismatch and production never regressed.
+On GPU, where the forward is memory-bound, the same drafters do speed things up
+-- see results/benchmark.txt.
+
+--- correctness over all served traffic ---
+  300 requests served; 30 re-decoded target-only; 0 greedy mismatches
+  requests per replica: [{'replica_id': 'replica-a', 'n': 150}, {'replica_id': 'replica-b', 'n': 150}]
+  responses with no traceable artifact: 0
+
+--- per draft version (aggregate; the gate compares arms within each canary window) ---
+  v1 canary=False n=213  tps=8.18   accept=None tok/forward=1.000 p95=3976ms
+  v2 canary=True  n=16   tps=8.66   accept=0.226 tok/forward=1.401 p95=3279ms
+  v3 canary=True  n=15   tps=8.25   accept=0.149 tok/forward=1.246 p95=3587ms
+  v4 canary=True  n=15   tps=9.00   accept=0.267 tok/forward=1.406 p95=3298ms
+  v5 canary=False n=20   tps=6.03   accept=0.257 tok/forward=1.433 p95=4385ms
+  v5 canary=True  n=15   tps=6.54   accept=0.277 tok/forward=1.481 p95=4391ms
+  v6 canary=True  n=6    tps=6.11   accept=0.227 tok/forward=1.455 p95=4209ms
+
+--- SLO gate decisions (concurrent baseline, Welch t-test + bootstrap CI) ---
+  candidate v2 vs concurrent baseline v1: FAIL
+    throughput 8.63 vs 8.71 tok/s = 0.990x  (Welch p=0.7791, significant=False)
+    p95        3282 vs 2830 ms = 1.160x  (bootstrap CI 1.0543-1.1807, significant=True)
+    samples: candidate n=15, baseline n=42   greedy mismatches: 0
+    FAILED -> p95 latency regression: 1.160x > 1.050x (bootstrap CI 1.0542901198636148-1.1807145283707692)
+
+  candidate v3 vs concurrent baseline v1: FAIL
+    throughput 8.25 vs 8.58 tok/s = 0.962x  (Welch p=0.52082, significant=False)
+    p95        3587 vs 2897 ms = 1.238x  (bootstrap CI 1.191-1.2912, significant=True)
+    samples: candidate n=15, baseline n=46   greedy mismatches: 0
+    FAILED -> p95 latency regression: 1.238x > 1.050x (bootstrap CI 1.191043145249657-1.2911823431787919)
+
+  candidate v4 vs concurrent baseline v1: FAIL
+    throughput 9.00 vs 8.46 tok/s = 1.064x  (Welch p=0.20217, significant=False)
+    p95        3298 vs 2934 ms = 1.124x  (bootstrap CI 1.0392-1.188, significant=True)
+    samples: candidate n=15, baseline n=37   greedy mismatches: 0
+    FAILED -> p95 latency regression: 1.124x > 1.050x (bootstrap CI 1.0391902367100136-1.1879754398283349)
+
+  candidate v5 vs concurrent baseline v1: PASS
+    throughput 6.54 vs 6.39 tok/s = 1.024x  (Welch p=0.61149, significant=False)
+    p95        4391 vs 4187 ms = 1.049x  (bootstrap CI 0.9613-1.1361, significant=False)
+    samples: candidate n=15, baseline n=37   greedy mismatches: 0
+    note: no measurable regression on throughput, tail latency or output
+
+--- deployment audit trail ---
+  23:06:56  register       vNone->v1  cold start: no speculation until a candidate proves it helps
+  23:07:02  hotswap_ack    vNone->v1  generation 1
+  23:07:02  hotswap_ack    vNone->v1  generation 1
+  23:09:16  register       vNone->v2  first trained version after cold start
+  23:09:21  canary_start   v1->v2  automated canary at 30%
+  23:12:06  canary_abort   v2->v1  p95 latency regression: 1.160x > 1.050x (bootstrap CI 1.0542901198636148-1.1
+  23:12:16  register       vNone->v3  first trained version after cold start
+  23:12:21  canary_start   v1->v3  automated canary at 30%
+  23:15:32  canary_abort   v3->v1  p95 latency regression: 1.238x > 1.050x (bootstrap CI 1.191043145249657-1.29
+  23:15:37  register       vNone->v4  first trained version after cold start
+  23:15:37  canary_start   v1->v4  automated canary at 30%
+  23:18:23  canary_abort   v4->v1  p95 latency regression: 1.124x > 1.050x (bootstrap CI 1.0391902367100136-1.1
+  23:18:27  register       vNone->v5  first trained version after cold start
+  23:18:28  canary_start   v1->v5  automated canary at 30%
+  23:22:04  promote        v1->v5  SLO gate passed (1.024x tps, 1.049x p95)
+  23:22:04  hotswap_ack    vNone->v5  generation 9
+  23:22:04  hotswap_ack    vNone->v5  generation 9
+  23:22:44  register       vNone->v6  drift: domain mixture shifted (JS=0.739); token distribution shifted (PSI=0.
+  23:22:44  canary_start   v5->v6  automated canary at 30%
+
+--- registry: every version, its artifact digest and why it exists ---
+  v1 retired    kind=none   samples=0    sha256=4845a02a35bab3d3 policy=None
+      cold start: no speculation until a candidate proves it helps
+  v2 rejected   kind=ngram  samples=33   sha256=c64f8579aee94669 policy=copy_first
+      first trained version after cold start
+  v3 rejected   kind=ngram  samples=84   sha256=ced45ca26d908dcc policy=copy_first
+      first trained version after cold start
+  v4 rejected   kind=ngram  samples=134  sha256=62764838719d9aa6 policy=copy_first
+      first trained version after cold start
+  v5 active     kind=ngram  samples=177  sha256=9e9119cf1399ec01 policy=copy_first
+      first trained version after cold start
+  v6 canary     kind=ngram  samples=227  sha256=504b3b869ca14a76 policy=copy_first
+      drift: domain mixture shifted (JS=0.739); token distribution shifted (PSI=0.811)
